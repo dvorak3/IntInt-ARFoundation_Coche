@@ -1,0 +1,5 @@
+/home/navi/UnityProject/vuforia/ARFoundation_Coche/.utmp/RelWithDebInfo/201g1j6e/arm64-v8a/CMakeFiles/edit_cache.dir
+/home/navi/UnityProject/vuforia/ARFoundation_Coche/.utmp/RelWithDebInfo/201g1j6e/arm64-v8a/CMakeFiles/rebuild_cache.dir
+/home/navi/UnityProject/vuforia/ARFoundation_Coche/.utmp/RelWithDebInfo/201g1j6e/arm64-v8a/GameActivity/CMakeFiles/game.dir
+/home/navi/UnityProject/vuforia/ARFoundation_Coche/.utmp/RelWithDebInfo/201g1j6e/arm64-v8a/GameActivity/CMakeFiles/edit_cache.dir
+/home/navi/UnityProject/vuforia/ARFoundation_Coche/.utmp/RelWithDebInfo/201g1j6e/arm64-v8a/GameActivity/CMakeFiles/rebuild_cache.dir
