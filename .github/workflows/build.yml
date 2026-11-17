@@ -1,0 +1,89 @@
+name: Build iOS Unsigned IPA
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Unity iOS Project
+    runs-on: macos-latest
+    steps:
+      # 1. Descargar el código fuente asegurando el uso de Git LFS
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      # 2. Descargar los archivos pesados de Git LFS (modelos 3D y texturas)
+      - name: Git LFS Pull
+        run: |
+          git lfs pull
+
+      # 3. Cachear la carpeta Library para agilizar futuras compilaciones
+      - name: Cache Unity Library
+        uses: actions/cache@v4
+        with:
+          path: Library
+          key: Library-iOS-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          restore-keys: |
+            Library-iOS-
+
+      # 4. Exportar el proyecto de Xcode desde Unity mediante GameCI
+      - name: Build Unity iOS Project
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          targetPlatform: iOS
+          buildName: ARFoundation_Coche
+          buildsPath: build/iOS
+
+      # 5. Compilar el proyecto Xcode a ejecutable .app sin firma de desarrollador
+      - name: Build Xcode Project (Unsigned)
+        run: |
+          XCODE_PROJ_PATH=$(find build/iOS -name "Unity-iPhone.xcodeproj" -type d | head -n 1)
+          XCODE_DIR=$(dirname "$XCODE_PROJ_PATH")
+          echo "Proyecto Xcode en: $XCODE_DIR"
+          cd "$XCODE_DIR"
+
+          rm -rf DerivedData build
+
+          xcodebuild -project Unity-iPhone.xcodeproj \
+                     -scheme Unity-iPhone \
+                     -configuration Release \
+                     -sdk iphoneos \
+                     -derivedDataPath ./DerivedData \
+                     CODE_SIGNING_ALLOWED=NO \
+                     CODE_SIGNING_REQUIRED=NO \
+                     CODE_SIGN_IDENTITY="" \
+                     AD_HOC_CODE_SIGNING_ALLOWED=YES \
+                     clean build
+
+      # 6. Localizar el ejecutable .app, crear Payload y comprimir en .ipa
+      - name: Generate .ipa file
+        run: |
+          XCODE_PROJ_PATH=$(find build/iOS -name "Unity-iPhone.xcodeproj" -type d | head -n 1)
+          XCODE_DIR=$(dirname "$XCODE_PROJ_PATH")
+          cd "$XCODE_DIR"
+
+          APP_PATH=$(find ./DerivedData -name "*.app" -type d | head -n 1)
+          echo "Aplicación encontrada en: $APP_PATH"
+
+          mkdir -p Payload
+          cp -r "$APP_PATH" Payload/
+          zip -r ARFoundation_Coche.ipa Payload
+
+          mkdir -p "$GITHUB_WORKSPACE/build/iOS"
+          cp ARFoundation_Coche.ipa "$GITHUB_WORKSPACE/build/iOS/"
+
+      # 7. Subir el ejecutable .ipa a los Artefactos descargables del workflow
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ARFoundation_Coche_iOS_Unsigned
+          path: build/iOS/ARFoundation_Coche.ipa
